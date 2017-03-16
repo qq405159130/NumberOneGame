@@ -189,6 +189,7 @@ public partial class Character :  MonoBehaviour,ICharacter
             //show die;
             BattleField.Instance.Remove(this, m_group);
             ChangeState(State.Death);
+            m_hpBar.gameObject.SetActive(false);
         }
         //show damage
         //m_hudText.Add(damage * -1, Color.red, 1);
@@ -250,13 +251,12 @@ public partial class Character
     private string m_curAnimName;
     void Start()
     {
-        m_animator = GetComponentInChildren<Animator>();
-
         BattleField.Instance.Add(this, m_group);
+        m_animator = GetComponentInChildren<Animator>();
+        transform.LookAt(transform.position + m_attackDir);
 
         InitHud();
         InitHpBar();
-
         m_attackTimer.Set(1 / m_prop.GetAtkSpeed, true);
     }
 
@@ -316,13 +316,20 @@ public partial class Character
                 if (m_fsm.m_IsChangeState)
                 {
                 }
+                if (!BattleField.Instance.IsStart())
+                {
+                    KeepCrossFade("stand", 0.1f, 0);
+                    return;
+                }
                 if (m_curTargetScript == null || m_curTargetScript.IsDeath())
                 {
                     m_curTarget = BattleField.Instance.FindCloseEnemy(transform.position,m_group);
                     if (m_curTarget)
                         m_curTargetScript = m_curTarget.GetComponent<Character>();
-                    else 
+                    else if (BattleField.Instance.IsEnd())
+                    {
                         ChangeState(State.Win);
+                    }
 
                     KeepCrossFade("stand", 0.1f, 0);
                 }
@@ -534,8 +541,10 @@ public partial class Character
     }
     void OnceCrossFade(string animName, float fadeTime, int Layer)
     {
-        float curAnimProgressTime = m_animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
-        if (!m_animator.IsInTransition(0) && curAnimProgressTime >= 1)
+         if (!m_animator.GetCurrentAnimatorStateInfo(0).IsName(animName) && !m_animator.IsInTransition(0))
+        {
+            m_animator.CrossFade(animName, fadeTime, Layer);
+        }else  if (!m_animator.IsInTransition(0) && m_animator.GetCurrentAnimatorStateInfo(0).normalizedTime >= 1)
         {
             m_animator.CrossFade(animName, fadeTime, Layer);
         }

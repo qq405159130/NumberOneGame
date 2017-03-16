@@ -16,6 +16,7 @@ public class BattleField : MonoBehaviour
 
         public Vector3 m_initPos;
 
+
         public Group(int group, Vector3 attackDir)
         {
             m_group = group;
@@ -77,25 +78,11 @@ public class BattleField : MonoBehaviour
         }
     }
 
-    public NX_List<Form> m_forms = new NX_List<Form>();
-    public NX_List<ICharacter> m_arms = new NX_List<ICharacter>();
-    public NX_List<ICharacter> m_enemys = new NX_List<ICharacter>();
-    private Group m_group1;
-    private Group m_group2;
 
-    public void Init(Group g1, Group g2)
-    {
-        m_group1 = g1;
-        m_group2 = g2;
-
-        g1.FillGroup();
-        g2.FillGroup();
-    }
 
     public class Form
     {
         public int m_id;
-         int m_number;
         public Vector3 m_initPos;
 
         public int m_group;
@@ -111,21 +98,28 @@ public class BattleField : MonoBehaviour
             Vector3[] posOffsets = new Vector3[] {m_attackDir * -0.5f, Vector3.forward, Vector3.back};//只有三个小弟的位置
             if (CharacterPropInfo.TryGetInfo(m_id, out prop))
             {
-                m_number = prop.m_IsBoss == 1? prop.m_ArmyCount : 1;
-
                 string characterPath = "";
                 Object Prefab = Resources.Load(characterPath + prop.m_modelId, typeof(GameObject));
-                Debug.Log("ResourcesPath:" + characterPath + prop.m_modelId);
+                //Debug.Log("ResourcesPath:" + characterPath + prop.m_modelId);
 
                 Create((GameObject)Prefab, m_initPos + m_attackDir, prop);
-
-                for (int i = 0; i < m_number; i++)
+            }
+            if (prop.m_IsBoss == 1)
+            {
+                Character.Prop armyProp;
+                if (CharacterPropInfo.TryGetInfo(prop.m_ArmyId, out armyProp))
                 {
-                    if (i >= posOffsets.Length)
-                        break;
-                    Create((GameObject)Prefab, m_initPos + posOffsets[i], prop);
+                    string characterPath = "";
+                    Object Prefab = Resources.Load(characterPath + prop.m_ArmyId, typeof(GameObject));
+                    for (int i = 0; i < prop.m_ArmyCount; i++)
+                    {
+                        if (i >= posOffsets.Length)
+                            break;
+                        Create((GameObject)Prefab, m_initPos + posOffsets[i], armyProp);
+                    }
                 }
             }
+            
         }
 
         public void Create(GameObject Prefab, Vector3 pos, Character.Prop prop)
@@ -143,7 +137,23 @@ public class BattleField : MonoBehaviour
 
     public static BattleField Instance;
     public int m_testIndex;
+
     int m_maxIndex = 4;
+    public NX_List<Form> m_forms = new NX_List<Form>();
+    public NX_List<ICharacter> m_arms = new NX_List<ICharacter>();
+    public NX_List<ICharacter> m_enemys = new NX_List<ICharacter>();
+    private Group m_group1;
+    private Group m_group2;
+    private NX_Timer m_timer = new NX_Timer();
+
+    public void Init(Group g1, Group g2)
+    {
+        m_group1 = g1;
+        m_group2 = g2;
+
+        g1.FillGroup();
+        g2.FillGroup();
+    }
 
     /// <summary>
     /// 竞技场势力，分左右两边
@@ -157,13 +167,17 @@ public class BattleField : MonoBehaviour
         {
             Instance = this;
         }
-        
     }
     void Start()
     {
         PrepareTest();
+        Invoke("StartBattle", 0);
     }
 
+    void StartBattle()
+    {
+        _isStart = true;
+    }
 
     void Update()
     {
@@ -332,5 +346,19 @@ public class BattleField : MonoBehaviour
                 m_enemys.Remove(c);
                 break;
         }
+    }
+
+    private bool _isStart;
+    public bool IsStart()
+    {
+        return _isStart;
+    }
+    public bool IsEnd()
+    {
+        if (_isStart && (m_arms.Count == 0 || m_enemys.Count == 0))
+        {
+            return true;
+        }
+        return false;
     }
 }

@@ -59,7 +59,7 @@ public class UIFollowTarget : MonoBehaviour
 		}
 		else
 		{
-			Debug.LogError("Expected to have 'target' set to a valid transform", this);
+			Debug.LogError(name + ": Expected to have 'target' set to a valid transform" , this);
 			enabled = false;
 		}
 	}
